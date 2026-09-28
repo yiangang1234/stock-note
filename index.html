@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="주식노트">
+<meta name="theme-color" content="#f7f4ec">
+<title>주식 노트</title>
+<link rel="apple-touch-icon" id="touchIcon" href="">
+<style>
+  :root {
+    --paper: #f7f4ec;
+    --card: #ffffff;
+    --ink: #1f2328;
+    --ink-2: #5b6168;
+    --ink-3: #8d9399;
+    --line: #e6e1d6;
+    --line-2: #efebe2;
+    --accent: #2b4c7e;
+    --up: #d4382c;
+    --down: #1d5fd0;
+    --up-bg: #fdecea;
+    --down-bg: #e9f0fd;
+    --mark: #d4382c;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    font-size: 17px;
+    line-height: 1.45;
+    -webkit-text-size-adjust: 100%;
+  }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 32px);
+  }
+  .top h1 { font-size: 28px; margin: 0; letter-spacing: -0.5px; }
+  .top p { margin: 2px 0 0; color: var(--ink-2); font-size: 15px; }
+
+  .actions { display: grid; grid-template-columns: 1fr; gap: 10px; margin: 18px 0 20px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .steps { margin: 4px 0 12px; padding-left: 22px; color: var(--ink-2); font-size: 15.5px; }
+  .steps li { margin-bottom: 4px; }
+  #pasteText {
+    width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+    font-size: 16px; background: #fff; resize: vertical;
+  }
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: 0; border-radius: var(--radius);
+    padding: 14px 16px; font-weight: 600; font-size: 17px;
+    background: var(--card); color: var(--ink);
+    box-shadow: 0 0 0 1px var(--line) inset;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn.primary { background: var(--accent); color: #fff; box-shadow: none; }
+  .btn.big { padding: 18px 16px; font-size: 19px; }
+  .btn.ghost { background: transparent; }
+  .btn.danger { color: var(--up); }
+  .btn .sub { font-weight: 400; font-size: 14px; opacity: 0.85; }
+  .btn-col { flex-direction: column; gap: 2px; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: 0 0 0 1px var(--line) inset;
+    overflow: hidden;
+  }
+  .section-title { font-size: 15px; color: var(--ink-2); margin: 0 0 8px 4px; font-weight: 600; }
+
+  /* 공책 표 */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.note { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+  table.note th, table.note td {
+    border-bottom: 1px solid var(--line-2);
+    padding: 10px 10px;
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  table.note thead th {
+    font-size: 14px; color: var(--ink-2); font-weight: 600;
+    background: #fbfaf6; position: sticky; top: 0;
+  }
+  table.note thead th.latest { color: var(--accent); }
+  table.note .name-cell {
+    position: sticky; left: 0; z-index: 1;
+    background: var(--card);
+    text-align: left;
+    border-right: 1px solid var(--line);
+    min-width: 118px; max-width: 150px;
+    padding-left: 12px;
+  }
+  table.note thead .name-cell { background: #fbfaf6; z-index: 2; }
+  table.note tbody tr:last-child td { border-bottom: 0; }
+  .name-btn {
+    all: unset; display: block; width: 100%; cursor: pointer;
+  }
+  .name-btn .nm {
+    display: block; font-weight: 600; font-size: 16px;
+    white-space: normal; word-break: keep-all; line-height: 1.25;
+  }
+  .name-btn svg { display: block; margin-top: 4px; }
+  .price { font-size: 16px; font-weight: 500; display: inline-block; padding: 1px 4px; border-radius: 999px; }
+  .price.marked { box-shadow: 0 0 0 2px var(--mark); }
+  .chg { display: block; font-size: 12.5px; margin-top: 1px; }
+  .up { color: var(--up); }
+  .down { color: var(--down); }
+  .flat { color: var(--ink-3); }
+  .empty-cell { color: var(--line); }
+
+  .empty {
+    text-align: center; padding: 36px 20px; color: var(--ink-2);
+  }
+  .empty .big { font-size: 40px; }
+
+  .settings { margin-top: 26px; }
+  .settings summary { color: var(--ink-2); font-size: 15px; padding: 8px 4px; cursor: pointer; }
+  .settings .grid { display: grid; gap: 8px; margin-top: 6px; }
+  .settings .note-text { font-size: 13.5px; color: var(--ink-3); margin: 6px 4px 0; }
+
+  /* 전체 화면 시트 */
+  .screen {
+    position: fixed; inset: 0; z-index: 20;
+    background: var(--paper);
+    display: flex; flex-direction: column;
+  }
+  .bar {
+    display: grid; grid-template-columns: 80px 1fr 80px; align-items: center;
+    padding: calc(env(safe-area-inset-top) + 8px) 8px 8px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .bar h2 { margin: 0; text-align: center; font-size: 18px; }
+  .bar .link { background: none; border: 0; color: var(--accent); font-size: 17px; padding: 8px; text-align: left; }
+  .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .scroll-inner { max-width: 680px; margin: 0 auto; padding: 16px 16px 24px; }
+  .bottom {
+    padding: 10px 16px calc(env(safe-area-inset-bottom) + 10px);
+    border-top: 1px solid var(--line); background: var(--paper);
+  }
+  .bottom .btn { width: 100%; max-width: 648px; margin: 0 auto; }
+
+  .progress-box { text-align: center; padding: 50px 10px; }
+  .progress-box .track { height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 18px auto 12px; max-width: 360px; }
+  .progress-box .fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+  .progress-box p { margin: 0; color: var(--ink-2); }
+  .progress-box .title { font-size: 19px; color: var(--ink); font-weight: 600; }
+
+  .date-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--card); border-radius: var(--radius); box-shadow: 0 0 0 1px var(--line) inset;
+    padding: 10px 14px; font-weight: 600;
+  }
+  .date-row input { border: 0; background: #f1eee6; border-radius: 10px; padding: 8px 10px; font-size: 17px; }
+  .hint { color: var(--ink-2); font-size: 14.5px; margin: 12px 4px; }
+  .warn { color: #9a5b00; font-size: 14px; margin: 8px 4px 0; }
+
+  .shots { margin: 0 0 12px; }
+  .shots summary { color: var(--accent); font-size: 15px; padding: 6px 4px; cursor: pointer; }
+  .shots img { width: 100%; border-radius: 10px; margin-top: 8px; box-shadow: 0 0 0 1px var(--line); }
+
+  .rv-list { display: grid; gap: 8px; }
+  .rv-row {
+    display: grid; grid-template-columns: 1fr 118px 40px; gap: 8px; align-items: center;
+    background: var(--card); border-radius: 12px; box-shadow: 0 0 0 1px var(--line) inset;
+    padding: 8px 8px 8px 10px;
+  }
+  .rv-row input {
+    width: 100%; border: 1px solid var(--line); border-radius: 9px;
+    padding: 9px 9px; font-size: 17px; background: #fff; min-width: 0;
+  }
+  .rv-row .rv-price { text-align: right; font-variant-numeric: tabular-nums; }
+  .rv-row .rv-del {
+    border: 0; background: #f1eee6; border-radius: 9px; height: 40px; font-size: 17px; color: var(--ink-2);
+  }
+  .rv-meta { grid-column: 1 / -1; font-size: 13px; color: var(--ink-3); margin: -2px 2px 0; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 99px; margin-right: 6px; }
+  .tag.new { background: #fff3d6; color: #8a5a00; }
+  .tag.known { background: #e8f3ea; color: #2c6b3a; }
+  .add-row { margin-top: 10px; width: 100%; }
+
+  /* 상세 */
+  .d-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .d-price { font-size: 34px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+  .d-chg { font-size: 17px; font-weight: 600; }
+  .d-date { color: var(--ink-2); font-size: 14.5px; margin-top: 2px; }
+  .chart-card { margin: 16px 0; padding: 12px 8px 6px; }
+  .chart-card svg { display: block; width: 100%; height: auto; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat { background: var(--card); border-radius: 12px; box-shadow: 0 0 0 1px var(--line) inset; padding: 10px 12px; }
+  .stat .k { font-size: 13px; color: var(--ink-2); }
+  .stat .v { font-size: 16.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .rec-list .rec {
+    display: grid; grid-template-columns: 64px 1fr auto 44px 40px; gap: 6px; align-items: center;
+    padding: 10px 10px 10px 14px; border-bottom: 1px solid var(--line-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .rec-list .rec:last-child { border-bottom: 0; }
+  .rec .dt { color: var(--ink-2); font-size: 15px; }
+  .rec .pv { text-align: right; font-weight: 600; }
+  .rec .cv { text-align: right; font-size: 13.5px; min-width: 70px; }
+  .rec button { border: 0; background: #f4f1ea; border-radius: 9px; height: 36px; font-size: 15px; }
+  .rec button.on { background: var(--up-bg); color: var(--mark); font-weight: 700; }
+  .d-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 18px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 90px);
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(31,35,40,0.92); color: #fff; padding: 12px 18px; border-radius: 12px;
+    font-size: 15.5px; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+    z-index: 50; max-width: calc(100% - 32px); text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ============ 메인(공책) ============ -->
+<main class="wrap" id="home">
+  <div class="top">
+    <h1>주식 노트</h1>
+    <p id="lastInfo">주식 앱 화면을 캡쳐해서 올리면 자동으로 적어 드려요</p>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary big btn-col" id="btnCapture">
+      <span>📷 캡쳐 사진으로 기록하기</span>
+      <span class="sub">주식 앱 관심종목 화면을 캡쳐한 사진을 고르세요</span>
+    </button>
+    <div class="two">
+      <button class="btn" id="btnManual">✏️ 직접 입력</button>
+      <button class="btn" id="btnPaste">📋 붙여넣기</button>
+    </div>
+  </div>
+  <input type="file" id="fileInput" accept="image/*" multiple hidden>
+
+  <p class="section-title" id="tableTitle" hidden>기록한 종목 · 이름을 누르면 그래프가 나와요</p>
+  <div class="card" id="noteCard">
+    <div class="table-scroll" id="tableScroll"></div>
+  </div>
+
+  <details class="settings">
+    <summary>⚙️ 백업 · 설정</summary>
+    <div class="grid">
+      <button class="btn" id="btnBackup">💾 백업 파일 저장</button>
+      <button class="btn" id="btnRestore">📂 백업 파일 불러오기</button>
+      <button class="btn" id="btnCsv">📊 엑셀(CSV)로 내보내기</button>
+      <button class="btn danger" id="btnReset">🗑 모든 기록 지우기</button>
+    </div>
+    <p class="note-text">기록은 이 휴대폰 안에만 저장돼요. 가끔 백업 파일을 저장해 두면 휴대폰을 바꿔도 불러올 수 있어요.</p>
+    <input type="file" id="restoreInput" accept=".json,application/json" hidden>
+  </details>
+</main>
+
+<!-- ============ 기록 확인 화면 ============ -->
+<section class="screen" id="review" hidden>
+  <div class="bar">
+    <button class="link" id="reviewCancel">취소</button>
+    <h2 id="reviewTitle">기록 확인</h2>
+    <span></span>
+  </div>
+  <div class="scroll">
+    <div class="scroll-inner">
+      <div class="progress-box" id="ocrProgress" hidden>
+        <div class="title" id="progTitle">사진에서 글자를 읽고 있어요</div>
+        <div class="track"><div class="fill" id="progFill"></div></div>
+        <p id="progText">준비 중…</p>
+      </div>
+
+      <div id="pasteBox" hidden>
+        <ol class="steps">
+          <li>사진 앱에서 주식 앱 캡쳐 사진을 열어요</li>
+          <li>오른쪽 아래 <b>글자 인식 버튼</b>(네모 안에 줄 세 개)을 누르고 <b>모두 선택 → 복사</b></li>
+          <li>아래 칸을 꾹 눌러 <b>붙여넣기</b> 한 뒤 <b>읽기</b>를 눌러요</li>
+        </ol>
+        <textarea id="pasteText" rows="9" placeholder="여기에 붙여넣기"></textarea>
+        <button class="btn primary big" id="pasteRead" style="width:100%;margin-top:10px">읽기</button>
+      </div>
+
+      <div id="reviewBody" hidden>
+        <label class="date-row">날짜 <input type="date" id="recDate"></label>
+        <p class="warn" id="dateWarn" hidden></p>
+        <p class="hint" id="reviewHint">숫자가 틀렸으면 눌러서 고쳐 주세요. 필요 없는 줄은 ✕로 지우세요.</p>
+        <details class="shots" id="shots" hidden>
+          <summary>캡쳐한 사진 같이 보기</summary>
+          <div id="shotImgs"></div>
+        </details>
+        <div class="rv-list" id="reviewList"></div>
+        <button class="btn ghost add-row" id="addRow">+ 종목 한 줄 추가</button>
+      </div>
+    </div>
+  </div>
+  <div class="bottom" id="reviewBottom" hidden>
+    <button class="btn primary big" id="saveRec">저장하기</button>
+  </div>
+</section>
+
+<!-- ============ 종목 상세 화면 ============ -->
+<section class="screen" id="detail" hidden>
+  <div class="bar">
+    <button class="link" id="detailBack">← 뒤로</button>
+    <h2 id="detailName"></h2>
+    <span></span>
+  </div>
+  <div class="scroll">
+    <div class="scroll-inner" id="detailBody"></div>
+  </div>
+</section>
+
+<datalist id="knownList"></datalist>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================== 저장소 ================== */
+const STORE_KEY = 'stock-note-v1';
+let db = loadDb();
+
+function loadDb() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d && Array.isArray(d.stocks)) return { stocks: d.stocks, aliases: d.aliases || {} };
+    }
+  } catch (e) {}
+  return { stocks: [], aliases: {} };
+}
+function saveDb() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({ version: 1, stocks: db.stocks, aliases: db.aliases }));
+    return true;
+  } catch (e) {
+    toast('저장하지 못했어요. 백업 파일을 먼저 저장해 주세요.');
+    return false;
+  }
+}
+// 사파리가 저장공간을 함부로 지우지 않도록 요청
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+/* ================== 공통 도우미 ================== */
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function shortDate(s) {
+  const [, m, d] = s.split('-');
+  return (+m) + '/' + (+d);
+}
+function longDate(s) {
+  const [y, m, d] = s.split('-');
+  const wd = '일월화수목금토'[new Date(+y, +m - 1, +d).getDay()];
+  return `${y}년 ${+m}월 ${+d}일 (${wd})`;
+}
+function fmtPrice(n) {
+  if (n == null || isNaN(n)) return '';
+  return Number.isInteger(n)
+    ? n.toLocaleString('ko-KR')
+    : n.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function parsePriceInput(s) {
+  s = String(s).replace(/[^\d.]/g, '');
+  if (!s) return null;
+  const n = parseFloat(s);
+  return isFinite(n) && n > 0 ? n : null;
+}
+function normName(s) { return String(s).replace(/\s+/g, '').toLowerCase(); }
+function findStock(name) {
+  const n = normName(name);
+  return db.stocks.find(s => normName(s.name) === n) || null;
+}
+function allDatesDesc() {
+  const set = new Set();
+  db.stocks.forEach(s => Object.keys(s.prices).forEach(d => set.add(d)));
+  return [...set].sort().reverse();
+}
+function stockSeries(s) {
+  return Object.keys(s.prices).sort().map(d => ({ d, p: s.prices[d].p, m: !!s.prices[d].m }));
+}
+function changeInfo(cur, prev) {
+  if (prev == null || cur == null) return null;
+  const diff = cur - prev;
+  const pct = prev ? diff / prev * 100 : 0;
+  const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+  const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '-';
+  return { diff, pct, cls, arrow };
+}
+function pctText(ci) {
+  if (!ci) return '';
+  if (ci.diff === 0) return '변동 없음';
+  return `${ci.arrow} ${Math.abs(ci.pct).toFixed(2)}%`;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* 이름이 비슷한 기존 종목 찾기 (글자 인식이 한두 글자 틀려도 맞춰 줌) */
+function lev(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+function similarity(a, b) {
+  a = normName(a); b = normName(b);
+  if (!a || !b) return 0;
+  return 1 - lev(a, b) / Math.max(a.length, b.length);
+}
+function matchKnown(name) {
+  const alias = db.aliases[normName(name)];
+  if (alias && findStock(alias)) return findStock(alias).name;
+  let best = null, score = 0;
+  for (const s of db.stocks) {
+    const sc = similarity(name, s.name);
+    if (sc > score) { score = sc; best = s; }
+  }
+  return score >= 0.6 ? best.name : null;
+}
+
+/* ================== 공책 표 그리기 ================== */
+function sparkline(series, w = 96, h = 24) {
+  if (series.length < 2) return '';
+  const ps = series.map(x => x.p);
+  let min = Math.min(...ps), max = Math.max(...ps);
+  if (min === max) { min -= 1; max += 1; }
+  const pts = series.map((x, i) =>
+    (2 + i * (w - 4) / (series.length - 1)).toFixed(1) + ',' + (2 + (max - x.p) * (h - 4) / (max - min)).toFixed(1));
+  const last = ps[ps.length - 1], first = ps[0];
+  const color = last > first ? 'var(--up)' : last < first ? 'var(--down)' : 'var(--ink-3)';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    <polyline points="${pts.join(' ')}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderHome() {
+  const dates = allDatesDesc();
+  const box = $('tableScroll');
+  $('knownList').innerHTML = db.stocks.map(s => `<option value="${escapeHtml(s.name)}"></option>`).join('');
+
+  if (!db.stocks.length || !dates.length) {
+    $('tableTitle').hidden = true;
+    $('lastInfo').textContent = '주식 앱 화면을 캡쳐해서 올리면 자동으로 적어 드려요';
+    box.innerHTML = `<div class="empty"><div class="big">📒</div>
+      <p>아직 기록이 없어요.<br>위의 <b>캡쳐 사진으로 기록하기</b>를 눌러<br>주식 앱 화면 캡쳐를 골라 보세요.</p></div>`;
+    return;
+  }
+  $('tableTitle').hidden = false;
+  $('lastInfo').textContent = `마지막 기록: ${longDate(dates[0])} · ${db.stocks.length}종목`;
+
+  let html = '<table class="note"><thead><tr><th class="name-cell">종목</th>';
+  dates.forEach((d, i) => { html += `<th class="${i === 0 ? 'latest' : ''}" title="${d}">${shortDate(d)}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  db.stocks.forEach((s, si) => {
+    const series = stockSeries(s);
+    html += `<tr><td class="name-cell"><button class="name-btn" data-stock="${si}">
+      <span class="nm">${escapeHtml(s.name)}</span>${sparkline(series)}</button></td>`;
+    dates.forEach(d => {
+      const rec = s.prices[d];
+      if (!rec) { html += '<td class="empty-cell">·</td>'; return; }
+      const idx = series.findIndex(x => x.d === d);
+      const ci = idx > 0 ? changeInfo(rec.p, series[idx - 1].p) : null;
+      html += `<td><span class="price ${rec.m ? 'marked' : ''}">${fmtPrice(rec.p)}</span>`
+        + (ci ? `<span class="chg ${ci.cls}">${pctText(ci)}</span>` : '<span class="chg flat">&nbsp;</span>')
+        + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  box.innerHTML = html;
+}
+
+$('tableScroll').addEventListener('click', e => {
+  const b = e.target.closest('[data-stock]');
+  if (b) openDetail(+b.dataset.stock);
+});
+
+/* ================== 글자 인식 (Tesseract.js) ================== */
+let tessPromise = null, workerPromise = null, progressHandler = null;
+
+function loadTesseract() {
+  if (window.Tesseract) return Promise.resolve();
+  if (!tessPromise) {
+    tessPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = resolve;
+      s.onerror = () => { tessPromise = null; s.remove(); reject(new Error('script')); };
+      document.head.appendChild(s);
+    });
+  }
+  return tessPromise;
+}
+function getWorker() {
+  if (!workerPromise) {
+    workerPromise = (async () => {
+      await loadTesseract();
+      const w = await Tesseract.createWorker(['kor', 'eng'], 1, {
+        logger: m => progressHandler && progressHandler(m),
+      });
+      await w.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' });
+      return w;
+    })().catch(err => { workerPromise = null; throw err; });
+  }
+  return workerPromise;
+}
+
+function loadImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => resolve({ img, url });
+    img.onerror = () => reject(new Error('image'));
+    img.src = url;
+  });
+}
+
+/* 흑백으로 바꾸고, 다크모드 화면이면 반전해서 글자를 또렷하게 */
+function preprocess(img) {
+  const w0 = img.naturalWidth, h0 = img.naturalHeight;
+  const scale = w0 < 900 ? 2 : Math.min(1, 1600 / w0);
+  const w = Math.round(w0 * scale), h = Math.round(h0 * scale);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, w, h);
+  const data = ctx.getImageData(0, 0, w, h);
+  const px = data.data;
+  let sum = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    const g = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+    px[i] = g; sum += g;
+  }
+  const dark = sum / (px.length / 4) < 110;
+  for (let i = 0; i < px.length; i += 4) {
+    let g = px[i];
+    if (dark) g = 255 - g;
+    g = Math.max(0, Math.min(255, (g - 128) * 1.5 + 140));
+    px[i] = px[i + 1] = px[i + 2] = g;
+  }
+  ctx.putImageData(data, 0, 0);
+  return c;
+}
+
+/* ================== 화면 글자 → 종목/주가 뽑기 ================== */
+const HANGUL = /[가-힣]/;
+const LATIN = /[A-Za-z]/;
+const STOP_NAMES = new Set(['현재가', '등락률', '등락', '거래량', '거래대금', '종목명', '종목', '관심종목', '관심', '전일대비',
+  '대비', '편집', '검색', '보유', '매수', '매도', '평가금', '평가손익', '수익률', '그룹', '전체', '기본', '국내', '해외',
+  '뉴스', '홈', '메뉴', '더보기', '설정', '주문', '잔고', '시세', '차트', '호가', '원', 'krw', 'usd', 'kospi', 'kosdaq']);
+
+function cleanTok(t) {
+  return t.normalize('NFKC').replace(/[|`'"“”‘’_~«»]/g, '').replace(/^[·•.:;]+|[·•:;]+$/g, '').trim();
+}
+function hasLetter(t) { return HANGUL.test(t) || LATIN.test(t); }
+
+/* 주가처럼 생긴 숫자면 값을, 아니면 null (등락폭·등락률은 제외) */
+function asPrice(t) {
+  let s = t.replace(/^(US)?\$/i, '');
+  if (/^[+\-−▲▼△▽↑↓(]/.test(s) || /%/.test(s)) return null;
+  // "84,500원", "35,120&", "226,0008!"처럼 뒤에 붙은 잡글자는 떼어 냄
+  let m = s.match(/^\d{1,3}(?:,\d{3})+(?:\.\d{1,2}(?!\d))?/);
+  if (m) return { v: parseFloat(m[0].replace(/,/g, '')), comma: true };
+  m = s.match(/^\d{1,3}(?:\.\d{3})+(?![\d.])/); // 쉼표를 점으로 읽은 경우
+  if (m) return { v: parseFloat(m[0].replace(/\./g, '')), comma: true };
+  s = s.replace(/(원|KRW|USD)$/i, '').replace(/[^\dA-Za-z가-힣]+$/, '');
+  if (/^\d+\.\d{1,2}$/.test(s)) return { v: parseFloat(s), comma: false };
+  if (/^\d+$/.test(s)) return { v: parseInt(s, 10), comma: false };
+  return null;
+}
+
+function collectWords(data) {
+  const words = [];
+  const push = w => {
+    const t = cleanTok(w.text || '');
+    if (t && w.confidence >= 10) words.push({ t, x0: w.bbox.x0, x1: w.bbox.x1, y0: w.bbox.y0, y1: w.bbox.y1 });
+  };
+  if (data.blocks && data.blocks.length) {
+    data.blocks.forEach(b => (b.paragraphs || []).forEach(p => (p.lines || []).forEach(l => (l.words || []).forEach(push))));
+  } else if (data.words) {
+    data.words.forEach(push);
+  }
+  return words;
+}
+
+function groupRows(words) {
+  words.forEach(w => { w.yc = (w.y0 + w.y1) / 2; w.h = w.y1 - w.y0; });
+  const hs = words.map(w => w.h).sort((a, b) => a - b);
+  const medH = hs[Math.floor(hs.length / 2)] || 20;
+  const sorted = [...words].sort((a, b) => a.yc - b.yc);
+  const rows = [];
+  for (const w of sorted) {
+    const r = rows[rows.length - 1];
+    if (r && Math.abs(w.yc - r.yc) < medH * 0.55) {
+      r.words.push(w);
+      r.yc = r.words.reduce((a, x) => a + x.yc, 0) / r.words.length;
+    } else {
+      rows.push({ yc: w.yc, words: [w] });
+    }
+  }
+  rows.forEach(r => r.words.sort((a, b) => a.x0 - b.x0));
+  return { rows, medH };
+}
+
+function parseRow(row) {
+  const toks = row.words.map(w => ({ t: w.t, x: w.x0, x1: w.x1 }));
+  // 맨 앞의 순번·아이콘 조각 버리기
+  while (toks.length && (/^\d+$/.test(toks[0].t) && toks.length > 1 && hasLetter(toks[1].t)
+    || (toks[0].t.length === 1 && !HANGUL.test(toks[0].t) && toks.length > 1))) toks.shift();
+
+  const nameParts = [];
+  let price = null, priceX = null, nameX = null, priceComma = false, priceTok = '';
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i].t;
+    const p = asPrice(t);
+    if (p) {
+      if (!nameParts.length) { // 이름 없이 숫자만 있는 줄
+        if (price == null) { price = p.v; priceX = toks[i].x; priceComma = p.comma; }
+        continue;
+      }
+      // "KODEX 200"처럼 이름 속 숫자: 쉼표 없고, 뒤에 또 주가 숫자가 있을 때
+      const laterPrice = toks.slice(i + 1).some(x => asPrice(x.t));
+      if (!p.comma && laterPrice && price == null) { nameParts.push(t); continue; }
+      if (price == null) { price = p.v; priceX = toks[i].x; priceComma = p.comma; priceTok = t; }
+      break;
+    }
+    if (hasLetter(t) && price == null) {
+      if (nameX == null) nameX = toks[i].x;
+      nameParts.push(t);
+    } else if (price != null) {
+      break;
+    }
+  }
+  const tidy = s => s
+    .replace(/[^가-힣A-Za-z0-9&.\-+() ]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/([가-힣])\s+(?=[가-힣])/g, '$1') // "삼 성 전 자" → "삼성전자"
+    .replace(/\s*(원|KRW)$/i, '')
+    .trim();
+  const ok = s => normName(s).length >= 2 && !STOP_NAMES.has(normName(s));
+  let name = tidy(nameParts.join(' '));
+  if (!ok(name)) name = '';
+  // 쉼표 없는 숫자를 주가로 잡았을 때를 대비해 "이름+숫자" 후보도 기억
+  const nameWithNum = name && price != null && !priceComma ? tidy(name + ' ' + priceTok) : '';
+  return { name, price, nameX, priceX, priceComma, nameWithNum, yc: row.yc };
+}
+
+/* 줄 목록 → [{name, price, yc}] (checkX: 가격이 이름보다 오른쪽에 있어야 짝으로 인정) */
+function pairRows(parsed, medH, checkX) {
+  const out = [];
+  const priceOnly = parsed.filter(r => !r.name && r.price != null);
+  const used = new Set();
+  const nearestPrice = n => {
+    let best = null, bd = Infinity;
+    priceOnly.forEach((p, i) => {
+      if (used.has(i)) return;
+      const dy = Math.abs(p.yc - n.yc);
+      const score = dy + (p.yc < n.yc ? medH * 0.3 : 0); // 비기면 아래 줄 우선
+      if (dy < medH * 1.8 && (!checkX || p.priceX == null || n.nameX == null || p.priceX > n.nameX) && score < bd) {
+        bd = score; best = i;
+      }
+    });
+    return best;
+  };
+
+  parsed.forEach(r => {
+    if (!r.name || r.price == null) return;
+    if (!r.priceComma && r.nameWithNum) {
+      // "KODEX 200" 다음 줄에 "35,120원"이 있으면 200은 이름의 일부
+      const i = nearestPrice(r);
+      if (i != null && priceOnly[i].priceComma) {
+        used.add(i);
+        out.push({ name: r.nameWithNum, price: priceOnly[i].price, yc: r.yc });
+        return;
+      }
+    }
+    out.push({ name: r.name, price: r.price, yc: r.yc });
+  });
+
+  // 이름 줄과 가격 줄이 살짝 어긋난 화면(토스 등): 가까운 줄끼리 짝지어 주기
+  parsed.filter(r => r.name && r.price == null).forEach(n => {
+    const i = nearestPrice(n);
+    if (i != null) {
+      used.add(i);
+      out.push({ name: n.name, price: priceOnly[i].price, yc: n.yc });
+    }
+  });
+
+  out.sort((a, b) => a.yc - b.yc);
+  const seen = new Set();
+  return out.filter(r => {
+    const k = normName(r.name);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+function extractStocks(data) {
+  const words = collectWords(data);
+  if (!words.length) return { items: [], medH: 20 };
+  const { rows, medH } = groupRows(words);
+  return { items: pairRows(rows.map(parseRow), medH, true), medH };
+}
+
+/* 두 가지 방식으로 읽은 결과를 합치기: 같은 높이의 줄은 하나로 */
+function mergePasses(a, b, medH) {
+  const out = a.slice();
+  b.forEach(x => {
+    const same = out.findIndex(y => Math.abs(y.yc - x.yc) < medH * 0.9);
+    if (same < 0) { out.push(x); return; }
+    const y = out[same];
+    if (!matchKnown(y.name) && matchKnown(x.name)) out[same] = x;
+  });
+  return out.sort((p, q) => p.yc - q.yc);
+}
+
+/* iPhone 사진 앱에서 복사한 글자(라이브 텍스트) 읽기 */
+function extractFromText(text) {
+  const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const parsed = lines.map((l, i) => parseRow({
+    yc: i,
+    words: l.split(/\s+/).map((t, j) => ({ t: cleanTok(t), x0: j })).filter(w => w.t),
+  }));
+  return pairRows(parsed, 1, false);
+}
+
+/* ================== 기록 확인 화면 ================== */
+let reviewShots = [];
+
+function openReview(title) {
+  $('reviewTitle').textContent = title;
+  $('review').hidden = false;
+  $('pasteBox').hidden = true;
+  $('recDate').value = todayStr();
+  updateDateWarn();
+  document.body.style.overflow = 'hidden';
+}
+function closeReview() {
+  $('review').hidden = true;
+  $('reviewList').innerHTML = '';
+  $('shotImgs').innerHTML = '';
+  reviewShots.forEach(u => URL.revokeObjectURL(u));
+  reviewShots = [];
+  document.body.style.overflow = '';
+  progressHandler = null;
+}
+
+function rowHtml(r) {
+  const known = r.name ? findStock(r.name) : null;
+  let meta = '';
+  if (r.name) meta += known ? '<span class="tag known">기존 종목</span>' : '<span class="tag new">새 종목</span>';
+  if (r.ocr && normName(r.ocr) !== normName(r.name)) meta += `읽은 글자: ${escapeHtml(r.ocr)}`;
+  return `<div class="rv-row">
+    <input class="rv-name" list="knownList" placeholder="종목 이름" value="${escapeHtml(r.name || '')}" data-ocr="${escapeHtml(r.ocr || '')}" autocomplete="off">
+    <input class="rv-price" inputmode="decimal" placeholder="주가" value="${r.price != null ? fmtPrice(r.price) : ''}">
+    <button class="rv-del" aria-label="이 줄 지우기">✕</button>
+    ${meta ? `<div class="rv-meta">${meta}</div>` : '<div class="rv-meta" hidden></div>'}
+  </div>`;
+}
+function renderReviewRows(rows) {
+  $('reviewList').insertAdjacentHTML('beforeend', rows.map(rowHtml).join(''));
+}
+
+$('reviewList').addEventListener('click', e => {
+  if (e.target.closest('.rv-del')) e.target.closest('.rv-row').remove();
+});
+$('reviewList').addEventListener('change', e => {
+  const row = e.target.closest('.rv-row');
+  if (!row) return;
+  if (e.target.classList.contains('rv-price')) {
+    const v = parsePriceInput(e.target.value);
+    if (v != null) e.target.value = fmtPrice(v);
+  }
+  if (e.target.classList.contains('rv-name')) {
+    const name = e.target.value.trim();
+    const meta = row.querySelector('.rv-meta');
+    meta.hidden = !name;
+    meta.innerHTML = name ? (findStock(name) ? '<span class="tag known">기존 종목</span>' : '<span class="tag new">새 종목</span>') : '';
+  }
+});
+$('addRow').addEventListener('click', () => {
+  renderReviewRows([{ name: '', price: null }]);
+  const inputs = $('reviewList').querySelectorAll('.rv-name');
+  inputs[inputs.length - 1].focus();
+});
+$('recDate').addEventListener('change', updateDateWarn);
+function updateDateWarn() {
+  const d = $('recDate').value;
+  const has = d && db.stocks.some(s => s.prices[d]);
+  $('dateWarn').hidden = !has;
+  $('dateWarn').textContent = has ? `${shortDate(d)}에 이미 적어 둔 기록이 있어요. 같은 종목은 새 값으로 바뀌어요.` : '';
+}
+$('reviewCancel').addEventListener('click', closeReview);
+
+$('saveRec').addEventListener('click', () => {
+  const date = $('recDate').value;
+  if (!date) { toast('날짜를 골라 주세요'); return; }
+  let count = 0, skipped = 0;
+  $('reviewList').querySelectorAll('.rv-row').forEach(row => {
+    const nameEl = row.querySelector('.rv-name');
+    const name = nameEl.value.trim().replace(/\s+/g, ' ');
+    const price = parsePriceInput(row.querySelector('.rv-price').value);
+    if (!name && price == null) return;
+    if (!name || price == null) { skipped++; return; }
+    const ocr = nameEl.dataset.ocr;
+    if (ocr && normName(ocr) !== normName(name)) db.aliases[normName(ocr)] = name; // 다음엔 자동으로 고쳐 줌
+    let s = findStock(name);
+    if (!s) { s = { name, prices: {} }; db.stocks.push(s); }
+    const old = s.prices[date];
+    s.prices[date] = { p: price, m: old ? !!old.m : false };
+    count++;
+  });
+  if (!count) { toast('저장할 종목이 없어요. 이름과 주가를 확인해 주세요.'); return; }
+  if (saveDb()) {
+    closeReview();
+    renderHome();
+    toast(`${shortDate(date)} · ${count}종목 저장했어요` + (skipped ? ` (${skipped}줄은 빈 칸이라 뺐어요)` : ''));
+  }
+});
+
+/* 사진 골라서 인식 */
+$('btnCapture').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (files.length) processFiles(files);
+});
+
+async function processFiles(files) {
+  openReview('캡쳐 읽는 중');
+  $('ocrProgress').hidden = false;
+  $('reviewBody').hidden = true;
+  $('reviewBottom').hidden = true;
+  const setProg = (pct, text) => {
+    $('progFill').style.width = Math.round(pct * 100) + '%';
+    if (text) $('progText').textContent = text;
+  };
+  setProg(0.02, '글자 인식 도구를 준비하고 있어요');
+
+  let all = [];
+  try {
+    let firstLoad = true;
+    progressHandler = m => {
+      if (m.status === 'recognizing text') return;
+      if (/load|initializ/.test(m.status) && firstLoad)
+        setProg(Math.min(0.3, 0.05 + (m.progress || 0) * 0.25), '처음 한 번은 준비하는 데 시간이 조금 걸려요');
+    };
+    const worker = await getWorker();
+    firstLoad = false;
+
+    for (let i = 0; i < files.length; i++) {
+      const label = files.length > 1 ? `사진 ${i + 1}/${files.length} · ` : '';
+      const base = 0.3 + 0.7 * i / files.length, span = 0.7 / files.length;
+      setProg(base, label + '사진을 읽고 있어요');
+      const { img, url } = await loadImage(files[i]);
+      reviewShots.push(url);
+      const canvas = preprocess(img);
+      // 글자 배치를 보는 방식 두 가지(11: 흩어진 글자, 4: 한 줄씩)로 읽고 합치면 빠지는 종목이 줄어듦
+      const passes = ['11', '4'];
+      let merged = [], medH = 20;
+      for (let k = 0; k < passes.length; k++) {
+        const b = base + span * k / passes.length, s = span / passes.length;
+        progressHandler = m => {
+          if (m.status === 'recognizing text') {
+            const pct = (k + (m.progress || 0)) / passes.length;
+            setProg(b + s * (m.progress || 0), label + `글자 읽는 중 ${Math.round(pct * 100)}%`);
+          }
+        };
+        await worker.setParameters({ tessedit_pageseg_mode: passes[k] });
+        const { data } = await worker.recognize(canvas, {}, { blocks: true, text: true });
+        const res = extractStocks(data);
+        if (k === 0) { merged = res.items; medH = res.medH; } else merged = mergePasses(merged, res.items, medH);
+      }
+      all = all.concat(merged);
+    }
+  } catch (err) {
+    console.error(err);
+    closeReview();
+    toast(err && err.message === 'script'
+      ? '인터넷 연결을 확인해 주세요. (처음 한 번은 인터넷이 필요해요)'
+      : '사진을 읽지 못했어요. 다시 시도하거나 직접 입력해 주세요.');
+    return;
+  }
+  progressHandler = null;
+  showFound(all, true);
+}
+
+function showFound(all, fromPhoto) {
+  // 같은 종목이 여러 사진에 있으면 한 번만
+  const seen = new Set();
+  const rows = [];
+  all.forEach(r => {
+    const known = matchKnown(r.name);
+    const name = known || r.name;
+    const k = normName(name);
+    if (seen.has(k)) return;
+    seen.add(k);
+    rows.push({ name, price: r.price, ocr: r.name });
+  });
+  // 다른 사진에서 이름이 잘려 읽힌 중복("KODEX" vs "KODEX 200") 빼기
+  const keys = rows.map(r => normName(r.name));
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (keys.some((k, j) => j !== i && k.length > keys[i].length && k.startsWith(keys[i]))) rows.splice(i, 1);
+  }
+
+  $('reviewTitle').textContent = '기록 확인';
+  $('ocrProgress').hidden = true;
+  $('reviewBody').hidden = false;
+  $('reviewBottom').hidden = false;
+  $('pasteBox').hidden = true;
+  $('shots').hidden = !fromPhoto;
+  $('shotImgs').innerHTML = reviewShots.map(u => `<img src="${u}" alt="캡쳐한 사진">`).join('');
+  $('reviewHint').textContent = rows.length
+    ? `${rows.length}종목을 찾았어요. ${fromPhoto ? '사진과 비교해서 ' : ''}틀린 곳은 눌러서 고쳐 주세요. 필요 없는 줄은 ✕로 지우세요.`
+    : '종목을 찾지 못했어요. 아래에서 직접 입력하거나, 종목 이름과 가격이 잘 보이게 다시 캡쳐해 주세요.';
+  renderReviewRows(rows.length ? rows : [{ name: '', price: null }]);
+}
+
+/* 사진 앱에서 복사한 글자 붙여넣기 */
+$('btnPaste').addEventListener('click', () => {
+  openReview('글자 붙여넣기');
+  $('ocrProgress').hidden = true;
+  $('reviewBody').hidden = true;
+  $('reviewBottom').hidden = true;
+  $('pasteBox').hidden = false;
+  $('pasteText').value = '';
+});
+$('pasteRead').addEventListener('click', () => {
+  const text = $('pasteText').value;
+  if (!text.trim()) { toast('먼저 복사한 글자를 붙여넣어 주세요'); return; }
+  $('reviewTitle').textContent = '기록 확인';
+  showFound(extractFromText(text), false);
+});
+
+/* 직접 입력: 지금까지 기록한 종목을 줄 세워 두고 숫자만 쓰기 */
+$('btnManual').addEventListener('click', () => {
+  openReview('직접 입력');
+  $('ocrProgress').hidden = true;
+  $('reviewBody').hidden = false;
+  $('reviewBottom').hidden = false;
+  $('shots').hidden = true;
+  $('reviewHint').textContent = db.stocks.length
+    ? '오늘 주가를 적어 주세요. 비워 둔 종목은 저장하지 않아요.'
+    : '종목 이름과 주가를 적어 주세요.';
+  renderReviewRows(db.stocks.length ? db.stocks.map(s => ({ name: s.name, price: null })) : [{ name: '', price: null }]);
+});
+
+/* ================== 종목 상세 ================== */
+let detailIdx = -1;
+
+function chartSvg(series) {
+  const w = 340, h = 214, padL = 12, padR = 12, padT = 26, padB = 44;
+  if (!series.length) return '';
+  const ps = series.map(x => x.p);
+  let min = Math.min(...ps), max = Math.max(...ps);
+  const range = max - min || Math.max(1, max * 0.02);
+  const lo = min - range * 0.08, hi = max + range * 0.08;
+  const X = i => series.length === 1 ? w / 2 : padL + i * (w - padL - padR) / (series.length - 1);
+  const Y = v => padT + (hi - v) * (h - padT - padB) / (hi - lo);
+  const first = ps[0], last = ps[ps.length - 1];
+  const color = last > first ? 'var(--up)' : last < first ? 'var(--down)' : 'var(--ink-2)';
+  const line = series.map((x, i) => `${X(i).toFixed(1)},${Y(x.p).toFixed(1)}`).join(' ');
+  const area = `${X(0).toFixed(1)},${h - padB} ${line} ${X(series.length - 1).toFixed(1)},${h - padB}`;
+  const iMax = ps.indexOf(max), iMin = ps.indexOf(min);
+  const anchor = i => i === 0 ? 'start' : i === series.length - 1 ? 'end' : 'middle';
+
+  let svg = `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="주가 그래프">
+    <line x1="${padL}" x2="${w - padR}" y1="${h - padB}" y2="${h - padB}" stroke="var(--line)"/>
+    <polygon points="${area}" fill="${color}" opacity="0.08"/>
+    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  series.forEach((x, i) => {
+    svg += `<circle cx="${X(i).toFixed(1)}" cy="${Y(x.p).toFixed(1)}" r="${series.length > 30 ? 2 : 3.5}" fill="#fff" stroke="${color}" stroke-width="2"/>`;
+    if (x.m) svg += `<circle cx="${X(i).toFixed(1)}" cy="${Y(x.p).toFixed(1)}" r="9" fill="none" stroke="var(--mark)" stroke-width="1.8"/>`;
+  });
+  if (series.length > 1 && max !== min) {
+    svg += `<text x="${X(iMax).toFixed(1)}" y="${(Y(max) - 10).toFixed(1)}" text-anchor="${anchor(iMax)}" font-size="12" fill="var(--up)">최고 ${fmtPrice(max)}</text>`;
+    svg += `<text x="${X(iMin).toFixed(1)}" y="${(Y(min) + 20).toFixed(1)}" text-anchor="${anchor(iMin)}" font-size="12" fill="var(--down)">최저 ${fmtPrice(min)}</text>`;
+  }
+  svg += `<text x="${padL}" y="${h - 8}" font-size="12" fill="var(--ink-2)">${shortDate(series[0].d)}</text>`;
+  if (series.length > 1) svg += `<text x="${w - padR}" y="${h - 8}" text-anchor="end" font-size="12" fill="var(--ink-2)">${shortDate(series[series.length - 1].d)}</text>`;
+  svg += '</svg>';
+  return svg;
+}
+
+function openDetail(idx) {
+  detailIdx = idx;
+  $('detail').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderDetail();
+}
+function closeDetail() {
+  $('detail').hidden = true;
+  document.body.style.overflow = '';
+  detailIdx = -1;
+  renderHome();
+}
+$('detailBack').addEventListener('click', closeDetail);
+
+function renderDetail() {
+  const s = db.stocks[detailIdx];
+  if (!s) { closeDetail(); return; }
+  const series = stockSeries(s);
+  $('detailName').textContent = s.name;
+  const body = $('detailBody');
+  if (!series.length) {
+    body.innerHTML = `<p class="hint">기록이 없어요.</p>${detailActions()}`;
+    return;
+  }
+  const last = series[series.length - 1];
+  const prev = series.length > 1 ? series[series.length - 2] : null;
+  const ci = prev ? changeInfo(last.p, prev.p) : null;
+  const total = series.length > 1 ? changeInfo(last.p, series[0].p) : null;
+  const ps = series.map(x => x.p);
+
+  let html = `<div class="d-head">
+      <span class="d-price">${fmtPrice(last.p)}</span>
+      ${ci ? `<span class="d-chg ${ci.cls}">${ci.arrow} ${fmtPrice(Math.abs(ci.diff))} (${Math.abs(ci.pct).toFixed(2)}%)</span>` : ''}
+    </div>
+    <div class="d-date">${longDate(last.d)} 기록${prev ? ` · ${shortDate(prev.d)}보다` : ''}</div>
+    <div class="card chart-card">${chartSvg(series)}</div>
+    <div class="stats">
+      <div class="stat"><div class="k">최고</div><div class="v up">${fmtPrice(Math.max(...ps))}</div></div>
+      <div class="stat"><div class="k">최저</div><div class="v down">${fmtPrice(Math.min(...ps))}</div></div>
+      <div class="stat"><div class="k">처음 대비</div><div class="v ${total ? total.cls : 'flat'}">${total ? (total.diff === 0 ? '0%' : (total.diff > 0 ? '+' : '-') + Math.abs(total.pct).toFixed(1) + '%') : '-'}</div></div>
+    </div>
+    <p class="section-title">날짜별 기록 · ⭕ 누르면 공책처럼 동그라미 표시</p>
+    <div class="card rec-list">`;
+  for (let i = series.length - 1; i >= 0; i--) {
+    const x = series[i];
+    const c = i > 0 ? changeInfo(x.p, series[i - 1].p) : null;
+    html += `<div class="rec">
+      <span class="dt">${shortDate(x.d)}</span>
+      <span class="pv"><span class="price ${x.m ? 'marked' : ''}">${fmtPrice(x.p)}</span></span>
+      <span class="cv ${c ? c.cls : 'flat'}">${c ? pctText(c) : '첫 기록'}</span>
+      <button class="${x.m ? 'on' : ''}" data-mark="${x.d}" aria-label="동그라미 표시">⭕</button>
+      <button data-del="${x.d}" aria-label="이 기록 지우기">✕</button>
+    </div>`;
+  }
+  html += `</div>${detailActions()}`;
+  body.innerHTML = html;
+}
+function detailActions() {
+  return `<div class="d-actions">
+    <button class="btn" data-act="rename">✏️ 이름 바꾸기</button>
+    <button class="btn danger" data-act="remove">🗑 종목 지우기</button>
+  </div>`;
+}
+
+$('detailBody').addEventListener('click', e => {
+  const s = db.stocks[detailIdx];
+  if (!s) return;
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.mark) {
+    const r = s.prices[t.dataset.mark];
+    r.m = !r.m;
+    saveDb(); renderDetail();
+  } else if (t.dataset.del) {
+    if (!confirm(`${shortDate(t.dataset.del)} 기록(${fmtPrice(s.prices[t.dataset.del].p)})을 지울까요?`)) return;
+    delete s.prices[t.dataset.del];
+    saveDb(); renderDetail();
+  } else if (t.dataset.act === 'rename') {
+    const n = (prompt('새 이름을 적어 주세요', s.name) || '').trim().replace(/\s+/g, ' ');
+    if (!n || n === s.name) return;
+    const other = findStock(n);
+    if (other && other !== s) {
+      if (!confirm(`'${n}' 종목이 이미 있어요. 두 종목의 기록을 합칠까요?`)) return;
+      Object.assign(other.prices, s.prices);
+      db.stocks.splice(detailIdx, 1);
+      detailIdx = db.stocks.indexOf(other);
+    } else {
+      s.name = n;
+    }
+    saveDb(); renderDetail();
+  } else if (t.dataset.act === 'remove') {
+    if (!confirm(`'${s.name}' 종목과 모든 기록을 지울까요?`)) return;
+    db.stocks.splice(detailIdx, 1);
+    saveDb(); closeDetail();
+    toast('지웠어요');
+  }
+});
+
+/* ================== 백업 ================== */
+async function shareOrDownload(filename, content, type) {
+  const blob = new Blob([content], { type });
+  try {
+    const file = new File([blob], filename, { type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+$('btnBackup').addEventListener('click', () => {
+  if (!db.stocks.length) { toast('아직 저장할 기록이 없어요'); return; }
+  shareOrDownload(`주식노트_백업_${todayStr()}.json`,
+    JSON.stringify({ version: 1, stocks: db.stocks, aliases: db.aliases }), 'application/json');
+});
+$('btnCsv').addEventListener('click', () => {
+  if (!db.stocks.length) { toast('아직 내보낼 기록이 없어요'); return; }
+  const dates = allDatesDesc().reverse();
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = [['종목', ...dates].map(q).join(',')];
+  db.stocks.forEach(s => lines.push([q(s.name), ...dates.map(d => s.prices[d] ? s.prices[d].p : '')].join(',')));
+  shareOrDownload(`주식노트_${todayStr()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv');
+});
+$('btnRestore').addEventListener('click', () => $('restoreInput').click());
+$('restoreInput').addEventListener('change', async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!d || !Array.isArray(d.stocks)) throw new Error('format');
+    const valid = d.stocks.every(s => s && typeof s.name === 'string' && s.prices && typeof s.prices === 'object');
+    if (!valid) throw new Error('format');
+    if (!confirm(`백업에 ${d.stocks.length}종목이 있어요. 지금 기록을 백업 내용으로 바꿀까요?`)) return;
+    db = { stocks: d.stocks, aliases: d.aliases || {} };
+    saveDb(); renderHome();
+    toast('백업을 불러왔어요');
+  } catch (err) {
+    toast('백업 파일을 읽지 못했어요');
+  }
+});
+$('btnReset').addEventListener('click', () => {
+  if (!db.stocks.length) return;
+  if (!confirm('모든 기록을 지울까요? 되돌릴 수 없어요.')) return;
+  if (!confirm('정말 지울까요? 백업 파일이 없으면 복구할 수 없어요.')) return;
+  db = { stocks: [], aliases: {} };
+  saveDb(); renderHome();
+  toast('모두 지웠어요');
+});
+
+/* ================== 홈 화면 아이콘 ================== */
+(function makeIcon() {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 180;
+    const x = c.getContext('2d');
+    x.fillStyle = '#f7f4ec'; x.fillRect(0, 0, 180, 180);
+    x.strokeStyle = '#e1dccf'; x.lineWidth = 2;
+    for (let y = 40; y < 180; y += 26) { x.beginPath(); x.moveTo(18, y); x.lineTo(162, y); x.stroke(); }
+    x.lineJoin = x.lineCap = 'round';
+    x.strokeStyle = '#d4382c'; x.lineWidth = 11;
+    x.beginPath(); x.moveTo(28, 130); x.lineTo(66, 96); x.lineTo(98, 114); x.lineTo(150, 52); x.stroke();
+    x.fillStyle = '#2b4c7e';
+    x.beginPath(); x.arc(150, 52, 12, 0, Math.PI * 2); x.fill();
+    $('touchIcon').href = c.toDataURL('image/png');
+  } catch (e) {}
+})();
+
+renderHome();
+</script>
+</body>
+</html>
